@@ -1,4 +1,4 @@
-# HCR probe design for Pacific oyster genes
+# Extract sense mRNA sequence for HCR probe design
 
 ### Gene-Specific Longest mRNA Extraction Pipeline
 
