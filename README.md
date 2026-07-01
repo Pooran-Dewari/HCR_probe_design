@@ -65,6 +65,11 @@ G9893
 | `all_mrna.fa` | All transcripts (intermediate file) |
 
 ---
+### How?
+
+Download and run the get_mRNA.sh bash script  
+
+---
 
 ### Biological interpretation
 
