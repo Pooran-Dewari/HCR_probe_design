@@ -80,15 +80,6 @@ Download and run the `get_mRNA.sh` bash script
 
 ---
 
-### Use cases
-
-- Comparative genomics
-- Gene-level summarisation
-- Orthology mapping
-- Protein prediction pipelines
-- Transcriptome simplification for downstream analysis
-
----
 
 ### Notes
 
