@@ -67,7 +67,7 @@ G9893
 ---
 ### How?
 
-Download and run the get_mRNA.sh bash script  
+Download and run the `get_mRNA.sh` bash script  
 
 ---
 
