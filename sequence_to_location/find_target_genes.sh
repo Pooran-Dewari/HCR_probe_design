@@ -23,7 +23,8 @@
 # Output:
 #   - a table of sequence hits and annotated gene IDs
 #   - an R-compatible gene list ready for Seurat expression visualisation
-#   - see 
+#   - see plot_expression_target_genes.R to learn how make plots from the outputs here
+
 
 
 
