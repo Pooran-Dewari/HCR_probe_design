@@ -33,7 +33,7 @@ If you just want the gene ID for entries 'genes'
 ```
 awk -F'\t' '$3=="gene" {
     match($9,/gene_id=([^;]+)/,a);
-    print $1"\t"$4"\t"$5"\t"a[1]
+    print $1"\t"$3"\t"$4"\t"$5"\t"a[1]
 }' typ-1-genes.txt
 
 ```
