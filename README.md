@@ -1,42 +1,56 @@
-# Extract sense mRNA sequence for HCR probe design
+# Extract Sense mRNA Sequence for HCR Probe Design
 
-### Gene-Specific Longest mRNA Extraction Pipeline
+A pipeline to extract **sense mRNA sequences** from a genome annotation (GFF3 + genome FASTA) for **HCR RNA-FISH probe design**.
 
-This repository provides a reproducible bioinformatics pipeline to extract **one representative mRNA transcript per gene (longest isoform)** from a genome assembly and GFF3 annotation file.
-
-The pipeline is designed for large eukaryotic genomes and performs strand-aware, exon-based transcript reconstruction, followed by isoform ranking and gene-level filtering.
+The script is designed for annotations where each gene can have multiple transcript isoforms. It identifies all mRNA isoforms, ranks them by transcript length, selects the longest transcript per gene, and produces a clean FASTA file suitable for submission to probe design platforms such as Molecular Instruments HCR v3.0.
 
 ---
 
-### What this pipeline does
+## Overview
 
-Requires these files at ready:
-- A genome FASTA file  
-- A GFF3 annotation file  
-- A list of gene IDs of interest  
+For each gene of interest:
 
-the pipeline:
-
-1. Extracts **spliced mRNA sequences** (exons joined, introns removed)
-2. Applies correct **strand-aware reconstruction**
-3. Computes **transcript lengths**
-4. Groups transcripts by **gene ID**
-5. Ranks isoforms by length
-6. Selects the **longest transcript per gene**
-7. Filters results using the provided gene list
-8. Outputs:
-   - Final FASTA (one mRNA per gene)
-   - Transcript length table (QC)
-   - Ranking table per gene (QC)
+1. Read a user-supplied gene list.
+2. Extract all annotated mRNA transcripts from the genome.
+3. Build the correct gene → transcript relationship from the GFF3 annotation.
+4. Calculate transcript lengths.
+5. Rank isoforms within each gene.
+6. Select the longest transcript isoform.
+7. Generate:
+   - a transcript ranking report for quality control
+   - a selected transcript table
+   - a clean FASTA file for HCR probe design
 
 ---
 
-### Requirements
+## Why select the longest transcript?
 
-- gffread (Cufflinks/StringTie suite)  
-- awk (GNU awk recommended)  
-- sort, grep, sed (standard Unix tools)
+HCR RNA-FISH probe design benefits from longer target sequences because:
 
+- longer transcripts provide more possible probe binding sites
+- more binding sites generally improve signal strength
+- longest isoforms often provide the most sequence space for probe design
+
+However, the longest transcript is not necessarily the most highly expressed isoform. For projects with isoform-specific biology, transcript expression data should be considered.
+
+---
+
+# Requirements
+
+## Software
+
+The pipeline requires:
+
+- `gffread`
+- standard Unix tools:
+  - `awk`
+  - `sort`
+  - `column`
+
+Install `gffread` using Conda:
+
+```bash
+conda install -c bioconda gffread
 ---
 
 ### Inputs
@@ -66,8 +80,11 @@ G9893
 
 ---
 ### How?
+Save genes in a file, e.g. genes_order1.txt
+Download and run the `get_mRNA.sh` bash script as follows.
 
-Download and run the `get_mRNA.sh` bash script  
+bash get_mRNA.sh genes_order1.txt
+Output files will be saved in genes_order1/ dirctory.
 
 ---
 
