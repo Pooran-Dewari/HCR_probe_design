@@ -94,7 +94,7 @@ G4501
 G5021
 ```
 
-The first line is treated as a header and removed.
+Note: The first line is treated as a header and removed; but must contain 'Gene' as header, otherwise the script won't run.
 
 ---
 
