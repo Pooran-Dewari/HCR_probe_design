@@ -1,6 +1,23 @@
 #!/bin/bash
 
+####### 3 aug 2026 ###############################################
+
 set -euo pipefail
+
+trap 'echo "ERROR: Pipeline failed at line $LINENO"' ERR
+
+echo "Script started"
+echo "Running in: $(pwd)"
+echo ""
+
+
+############################################
+# Create temporary directory
+############################################
+
+TMPDIR=$(mktemp -d)
+
+trap 'rm -rf "$TMPDIR"' EXIT
 
 
 ############################################
@@ -13,8 +30,18 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-
 GENE_LIST=$1
+
+
+############################################
+# Validate gene list
+############################################
+
+if [ "$(head -n1 "$GENE_LIST")" != "Gene" ]; then
+    echo "ERROR: First line of gene list must be:"
+    echo "Gene"
+    exit 1
+fi
 
 
 ############################################
@@ -23,7 +50,6 @@ GENE_LIST=$1
 
 FASTA="Crassostrea_gigas_uk_roslin_v1.dna_sm.primary_assembly.fa"
 GFF="Crassostrea_gigas.cgigas_uk_roslin_v1.58.chr.gff3"
-
 
 
 ############################################
@@ -38,19 +64,24 @@ OUTDIR="${BASE}_HCR"
 mkdir -p "$OUTDIR"
 
 
-ALL_MRNA="$OUTDIR/all_mrna.fa"
-TXMAP="$OUTDIR/transcript_gene_map.tsv"
-META="$OUTDIR/transcript_metadata.tsv"
+############################################
+# Temporary working files
+############################################
 
-RANKS_RAW="$OUTDIR/transcript_ranks_raw.tsv"
+ALL_MRNA="$TMPDIR/all_mrna.fa"
+TXMAP="$TMPDIR/transcript_gene_map.tsv"
+META="$TMPDIR/transcript_metadata.tsv"
+CLEAN_GENES="$TMPDIR/genes.clean.txt"
+RANKS_RAW="$TMPDIR/transcript_ranks_raw.tsv"
+
+
+############################################
+# Output files
+############################################
+
 RANKS="$OUTDIR/transcript_ranks.tsv"
-
 SELECTED="$OUTDIR/selected_transcripts.tsv"
-
 FINAL="$OUTDIR/selected_one_per_gene_HCR.fa"
-
-
-CLEAN_GENES="$OUTDIR/genes.clean.txt"
 
 
 
@@ -68,7 +99,6 @@ echo "=============================================="
 echo ""
 echo "[1] Cleaning gene list"
 
-
 tail -n +2 "$GENE_LIST" > "$CLEAN_GENES"
 
 
@@ -79,7 +109,6 @@ tail -n +2 "$GENE_LIST" > "$CLEAN_GENES"
 
 echo ""
 echo "[2] Extracting mRNA sequences"
-
 
 gffread \
 -W \
@@ -137,7 +166,6 @@ NR==FNR {
         print gene "\t" tx "\t" length(seq) "\t" cds "\t" strand
 
 
-
     header=$0
     sub(/^>/,"",header)
 
@@ -145,7 +173,6 @@ NR==FNR {
     match(header,/transcript:([^ ]+)/,t)
 
     tx=t[1]
-
 
     gene=tx2gene[tx]
 
@@ -219,7 +246,7 @@ BEGIN{OFS="\t"}
 
 
 ############################################
-# 6. Human readable ranking report
+# 6. Create ranking report
 ############################################
 
 echo ""
@@ -243,7 +270,6 @@ $1 != previous {
 
 }
 
-
 {
     print
 
@@ -254,14 +280,16 @@ $1 != previous {
 
 
 ############################################
-# 7. Select longest isoform per gene
+# 7. Select longest isoforms
 ############################################
 
 echo ""
 echo "[7] Selecting longest isoforms"
 echo ""
 
+
 echo -e "Gene\tTranscript\tRank\tLength\tCDS\tStrand" > "$SELECTED"
+
 
 awk '
 $3==1 {
@@ -270,14 +298,11 @@ $3==1 {
 ' "$RANKS_RAW" >> "$SELECTED"
 
 
+
 echo "Selected isoforms:"
 echo ""
 
 column -t "$SELECTED"
-
-echo ""
-echo "Total selected:"
-tail -n +2 "$SELECTED" | wc -l
 
 
 ############################################
@@ -291,6 +316,9 @@ echo "[8] Creating ordered HCR FASTA"
 awk '
 
 NR==FNR {
+
+    if(FNR==1)
+        next
 
     wanted[$2]=1
     gene[$2]=$1
@@ -368,13 +396,21 @@ echo "=============================================="
 echo " COMPLETE"
 echo "=============================================="
 
+
 echo ""
 echo "Genes supplied:"
-wc -l "$CLEAN_GENES"
+tail -n +2 "$GENE_LIST" | wc -l
+
 
 echo ""
 echo "Selected transcripts:"
 grep -c "^>" "$FINAL"
+
+
+if [ "$(tail -n +2 "$SELECTED" | wc -l)" -ne "$(grep -c "^>" "$FINAL")" ]; then
+    echo ""
+    echo "WARNING: Selected transcript table and FASTA count differ"
+fi
 
 
 echo ""
@@ -384,6 +420,11 @@ echo "$RANKS"
 echo "$SELECTED"
 echo "$FINAL"
 
+
 echo ""
 echo "FASTA example:"
 head -1 "$FINAL"
+
+
+echo ""
+echo "Script finished successfully"
