@@ -246,7 +246,3 @@ Example use case:
 **Pacific oyster (*Crassostrea gigas*) HCR v3.0 probe design**
 
 ---
-
-## Author
-
-Pipeline developed for transcript selection and HCR probe preparation workflows.
