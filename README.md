@@ -178,10 +178,11 @@ GFF3 + Genome FASTA
 ## Notes
 
 ### mRNA sequence
-
-* Exons only
+The output FASTA contains spliced transcript sequences:
 * Introns removed
-* Represents mature transcript
+* Exons joined
+* Includes UTR regions
+
 
 ---
 
