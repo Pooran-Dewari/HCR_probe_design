@@ -1,51 +1,42 @@
 #!/bin/bash
 
-####### 3 aug 2026 ###############################################
-
+# updated: 4 Aug 2026
 set -euo pipefail
-
 trap 'echo "ERROR: Pipeline failed at line $LINENO"' ERR
 
 echo "Script started"
 echo "Running in: $(pwd)"
 echo ""
 
-
 ############################################
-# Create temporary directory
+# Temp dir
 ############################################
 
 TMPDIR=$(mktemp -d)
-
 trap 'rm -rf "$TMPDIR"' EXIT
 
 
 ############################################
-# USER INPUT
+# Input
 ############################################
 
 if [ $# -ne 1 ]; then
-    echo "Usage:"
-    echo "  $0 gene_list.txt"
+    echo "Usage: $0 gene_list.txt"
     exit 1
 fi
 
 GENE_LIST=$1
 
+HEADER=$(head -n1 "$GENE_LIST")
 
-############################################
-# Validate gene list
-############################################
-
-if [ "$(head -n1 "$GENE_LIST")" != "Gene" ]; then
-    echo "ERROR: First line of gene list must be:"
-    echo "Gene"
+if [[ "$HEADER" != *Gene* ]]; then
+    echo "ERROR: First column must be 'Gene'"
     exit 1
 fi
 
 
 ############################################
-# REFERENCE FILES
+# Reference
 ############################################
 
 FASTA="Crassostrea_gigas_uk_roslin_v1.dna_sm.primary_assembly.fa"
@@ -53,208 +44,142 @@ GFF="Crassostrea_gigas.cgigas_uk_roslin_v1.58.chr.gff3"
 
 
 ############################################
-# OUTPUT DIRECTORY
+# Output
 ############################################
 
 BASE=$(basename "$GENE_LIST")
 BASE=${BASE%.*}
-
 OUTDIR="${BASE}_HCR"
-
 mkdir -p "$OUTDIR"
-
-
-############################################
-# Temporary working files
-############################################
-
-ALL_MRNA="$TMPDIR/all_mrna.fa"
-TXMAP="$TMPDIR/transcript_gene_map.tsv"
-META="$TMPDIR/transcript_metadata.tsv"
-CLEAN_GENES="$TMPDIR/genes.clean.txt"
-RANKS_RAW="$TMPDIR/transcript_ranks_raw.tsv"
-
-
-############################################
-# Output files
-############################################
 
 RANKS="$OUTDIR/transcript_ranks.tsv"
 SELECTED="$OUTDIR/selected_transcripts.tsv"
 FINAL="$OUTDIR/selected_one_per_gene_HCR.fa"
 
 
+############################################
+# Temp files
+############################################
+
+ALL_MRNA="$TMPDIR/all_mrna.fa"
+TXMAP="$TMPDIR/tx2gene.tsv"
+META="$TMPDIR/meta.tsv"
+GENE_INFO="$TMPDIR/gene_info.tsv"
+CLEAN_GENES="$TMPDIR/genes.txt"
+RANKS_RAW="$TMPDIR/ranks_raw.tsv"
+
 
 echo "=============================================="
-echo " HCR transcript selection pipeline"
-echo " Input: $GENE_LIST"
-echo " Output: $OUTDIR"
+echo " HCR transcript selection + annotation"
 echo "=============================================="
 
 
 ############################################
-# 1. Clean gene list
+# 1. Parse gene input (flexible columns)
 ############################################
 
-echo ""
-echo "[1] Cleaning gene list"
+echo "[1] Parsing gene list"
 
-tail -n +2 "$GENE_LIST" > "$CLEAN_GENES"
-
-
-
-############################################
-# 2. Extract all mRNA
-############################################
-
-echo ""
-echo "[2] Extracting mRNA sequences"
-
-gffread \
--W \
--w "$ALL_MRNA" \
--g "$FASTA" \
-"$GFF"
-
-
-
-############################################
-# 3. Transcript -> gene map
-############################################
-
-echo ""
-echo "[3] Building transcript-gene map"
-
-
-awk -F'\t' '
-
-$3=="mRNA" {
-
-    match($9,/ID=transcript:([^;]+)/,tx)
-    match($9,/Parent=gene:([^;]+)/,gene)
-
-    if(tx[1] && gene[1])
-        print tx[1] "\t" gene[1]
+awk '
+NR==1 {
+    for(i=1;i<=NF;i++){
+        if($i=="Gene") g=i
+        if($i=="Description") d=i
+        if($i=="CellType") c=i
+    }
+    next
 }
 
+{
+    gene=$g
+    desc=(d ? $d : "NA")
+    cell=(c ? $c : "NA")
+
+    print gene > "'$CLEAN_GENES'"
+    print gene "\t" desc "\t" cell >> "'$GENE_INFO'"
+}
+' "$GENE_LIST"
+
+
+############################################
+# 2. Extract mRNA
+############################################
+
+echo "[2] Extracting mRNA"
+
+gffread -W -w "$ALL_MRNA" -g "$FASTA" "$GFF"
+
+
+############################################
+# 3. Transcript → gene
+############################################
+
+echo "[3] Mapping transcripts"
+
+awk -F'\t' '
+$3=="mRNA" {
+    match($9,/ID=transcript:([^;]+)/,t)
+    match($9,/Parent=gene:([^;]+)/,g)
+    if(t[1] && g[1])
+        print t[1] "\t" g[1]
+}
 ' "$GFF" > "$TXMAP"
 
 
-
 ############################################
-# 4. Transcript metadata
+# 4. Metadata
 ############################################
 
-echo ""
-echo "[4] Extracting transcript metadata"
-
+echo "[4] Extracting metadata"
 
 awk '
-
-NR==FNR {
-
-    tx2gene[$1]=$2
-    next
-
-}
-
+NR==FNR { map[$1]=$2; next }
 
 /^>/ {
-
-
     if(seq!="")
         print gene "\t" tx "\t" length(seq) "\t" cds "\t" strand
 
+    header=$0; sub(/^>/,"",header)
 
-    header=$0
-    sub(/^>/,"",header)
+    match(header,/transcript:([^ ]+)/,t); tx=t[1]
+    gene=map[tx]
 
-
-    match(header,/transcript:([^ ]+)/,t)
-
-    tx=t[1]
-
-    gene=tx2gene[tx]
-
-
-    if(match(header,/CDS=([0-9]+-[0-9]+)/,c))
-        cds=c[1]
-    else
-        cds="NA"
-
-
-    if(match(header,/loc:[^|]+\|[0-9-]+\|([+-])/,s))
-        strand=s[1]
-    else
-        strand="NA"
-
+    cds="NA"; strand="NA"
+    if(match(header,/CDS=([0-9]+-[0-9]+)/,c)) cds=c[1]
+    if(match(header,/loc:[^|]+\|[0-9-]+\|([+-])/,s)) strand=s[1]
 
     seq=""
     next
-
 }
 
-
-{
-    seq=seq $0
-}
-
+{ seq=seq $0 }
 
 END {
-
     if(seq!="")
         print gene "\t" tx "\t" length(seq) "\t" cds "\t" strand
-
 }
-
 ' "$TXMAP" "$ALL_MRNA" > "$META"
 
 
-
 ############################################
-# 5. Rank transcripts for requested genes
+# 5a. Rank
 ############################################
 
-echo ""
-echo "[5] Ranking transcripts"
+echo "[5] Ranking"
 
-
-awk '
-
-NR==FNR {
-    wanted[$1]=1
-    next
-}
-
-($1 in wanted)
-
-' "$CLEAN_GENES" "$META" | \
-
+awk 'NR==FNR {w[$1]; next} ($1 in w)' "$CLEAN_GENES" "$META" | \
 sort -k1,1 -k3,3nr | \
-
-awk '
-
-BEGIN{OFS="\t"}
-
-{
-    rank[$1]++
-    print $1,$2,rank[$1],$3,$4,$5
-}
-
-' > "$RANKS_RAW"
-
+awk 'BEGIN{OFS="\t"}{r[$1]++; print $1,$2,r[$1],$3,$4,$5}' \
+> "$RANKS_RAW"
 
 
 ############################################
-# 6. Create ranking report
+# 5b. Human-readable ranking report
 ############################################
 
-echo ""
-echo "[6] Creating ranking report"
-
+echo "[6] Creating transcript ranking report"
 
 awk '
-
 $1 != previous {
 
     if(previous!="")
@@ -267,128 +192,139 @@ $1 != previous {
     print "Gene\tTranscript\tRank\tLength\tCDS\tStrand"
 
     previous=$1
-
 }
 
 {
     print
-
 }
 
 ' "$RANKS_RAW" > "$RANKS"
 
-
-
 ############################################
-# 7. Select longest isoforms
+# 6. Select longest (preserve order + annotate)
 ############################################
 
-echo ""
-echo "[7] Selecting longest isoforms"
-echo ""
+echo "[6] Selecting longest transcripts"
 
-
-echo -e "Gene\tTranscript\tRank\tLength\tCDS\tStrand" > "$SELECTED"
-
+echo -e "Gene\tDescription\tCellType\tTranscript\tRank\tLength\tCDS\tStrand" > "$SELECTED"
 
 awk '
-$3==1 {
-    print
+NR==FNR {
+    order[++n]=$1
+    desc[$1]=$2
+    cell[$1]=$3
+    next
 }
-' "$RANKS_RAW" >> "$SELECTED"
 
+$3==1 { best[$1]=$0 }
 
-
-echo "Selected isoforms:"
-echo ""
+END {
+    for(i=1;i<=n;i++){
+        g=order[i]
+        if(g in best){
+            split(best[g],f,"\t")
+            print g,desc[g],cell[g],f[2],f[3],f[4],f[5],f[6]
+        }
+    }
+}
+' "$GENE_INFO" "$RANKS_RAW" >> "$SELECTED"
 
 column -t "$SELECTED"
 
 
 ############################################
-# 8. Generate ordered HCR FASTA
+# 7. FASTA with annotations (FIXED)
 ############################################
 
-echo ""
-echo "[8] Creating ordered HCR FASTA"
-
+echo "[7] Writing FASTA"
 
 awk '
-
 NR==FNR {
+    if(FNR==1) next
 
-    if(FNR==1)
-        next
+    tx=$4
 
-    wanted[$2]=1
-    gene[$2]=$1
-    len[$2]=$4
-    cds[$2]=$5
-    strand[$2]=$6
+    gene[tx]=$1
+    desc[tx]=$2
+    cell[tx]=$3
+    len[tx]=$6
+    cds[tx]=$7
+    strand[tx]=$8
 
-    order[++n]=$2
-
+    order[++n]=tx
+    keep[tx]=1
     next
-
 }
-
 
 /^>/ {
-
-
-    if(seq!="" && current in wanted)
-        sequence[current]=seq
-
+    if(seq!="" && current in keep)
+        seqs[current]=seq
 
     header=$0
-    sub(/^>/,"",header)
 
-
-    match(header,/transcript:([^ ]+)/,t)
-
-    current=t[1]
+    # FIX: use "m" instead of "t"
+    if(match(header,/transcript:([^ ]+)/,m))
+        current=m[1]
+    else
+        current=""
 
     seq=""
-
     next
-
 }
-
 
 {
     seq=seq $0
-
 }
 
-
 END {
-
-    if(current in wanted)
-        sequence[current]=seq
-
+    if(current in keep)
+        seqs[current]=seq
 
     for(i=1;i<=n;i++){
 
         tx=order[i]
 
         print ">gene="gene[tx] \
+              " desc="desc[tx] \
+              " cell="cell[tx] \
               " transcript="tx \
               " length="len[tx] \
               " CDS="cds[tx] \
               " strand="strand[tx]
 
-        print sequence[tx]
-
+        print seqs[tx]
     }
-
 }
-
 ' "$SELECTED" "$ALL_MRNA" > "$FINAL"
 
+############################################
+# 8. Missing gene report
+############################################
 
+echo "[8] Checking missing genes"
+
+awk 'NR>1 {print $1}' "$SELECTED" | sort > "$TMPDIR/found.txt"
+sort "$CLEAN_GENES" > "$TMPDIR/input.txt"
+
+
+MISSING=$(comm -23 "$TMPDIR/input.txt" "$TMPDIR/found.txt")
+
+
+echo ""
+
+if [ -z "$MISSING" ]; then
+
+    echo "No missing genes!!"
+
+else
+
+    echo "Missing genes:"
+    echo "$MISSING"
+
+fi
 
 ############################################
-# 9. Summary
+# DONE
 ############################################
 
 echo ""
@@ -396,35 +332,8 @@ echo "=============================================="
 echo " COMPLETE"
 echo "=============================================="
 
-
 echo ""
-echo "Genes supplied:"
-tail -n +2 "$GENE_LIST" | wc -l
-
-
-echo ""
-echo "Selected transcripts:"
-grep -c "^>" "$FINAL"
-
-
-if [ "$(tail -n +2 "$SELECTED" | wc -l)" -ne "$(grep -c "^>" "$FINAL")" ]; then
-    echo ""
-    echo "WARNING: Selected transcript table and FASTA count differ"
-fi
-
-
-echo ""
-echo "Files created:"
-echo ""
+echo "Outputs:"
 echo "$RANKS"
 echo "$SELECTED"
 echo "$FINAL"
-
-
-echo ""
-echo "FASTA example:"
-head -1 "$FINAL"
-
-
-echo ""
-echo "Script finished successfully"
