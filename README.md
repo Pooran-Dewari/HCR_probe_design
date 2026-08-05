@@ -287,6 +287,7 @@ Removed:
 The final sequence represents the processed mRNA molecule.
 
 ---
+
 ## Stage 2: Validate FASTA sequences before ordering
 
 Before submitting sequences for HCR probe design, each transcript should be
