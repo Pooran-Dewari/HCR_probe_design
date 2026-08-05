@@ -34,7 +34,7 @@ The workflow has three stages:
 
 ### Workflow Overview
 
-```
+```text
 Target gene list
         |
         ▼
@@ -363,16 +363,16 @@ The best match should correspond to the expected oyster transcript.
 
 The alignment should show:
 
-```
+`
 Strand: Plus / Plus
-```
+`
 
 Expected:
 
-```
+`
 Query      Plus
 Subject    Plus
-```
+`
 
 A reverse orientation result should be investigated before proceeding.
 
