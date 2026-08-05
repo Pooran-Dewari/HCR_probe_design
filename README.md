@@ -27,7 +27,6 @@ The workflow has three stages:
   - [Output Files](#output-files)
 - [Stage 2: Validate FASTA sequences before ordering](#stage-2-validate-fasta-sequences-before-ordering)
   - [NCBI BLAST validation](#ncbi-blast-validation)
-  - [Expected BLAST result](#expected-blast-result)
 - [Stage 3: Submit sequences for HCR probe design](#stage-3-submit-sequences-for-hcr-probe-design)
 - [Notes](#notes)
 
@@ -62,9 +61,9 @@ Submit to Molecular Instruments
 
 ---
 
-### Stage 1: Extract HCR-ready mRNA sequences
+## Stage 1: Extract HCR-ready mRNA sequences
 
-#### Overview
+### Overview
 
 Genes often contain multiple transcript isoforms.
 
@@ -82,9 +81,9 @@ For every requested gene:
 
 ---
 
-#### Requirements
+### Requirements
 
-##### Software
+#### Software
 
 Required:
 
@@ -103,15 +102,13 @@ conda install -c bioconda gffread
 
 ---
 
-#### Input Files
+### Input Files
 
-##### 1. Gene list
+#### 1. Gene list
 
 The input file must contain a column called:
 
-```
-Gene
-```
+`Gene`
 
 Example:
 
@@ -128,7 +125,7 @@ G3128
 
 ---
 
-##### Optional annotations
+#### Optional annotations
 
 Additional columns can be included.
 
@@ -152,35 +149,27 @@ Supported additional information:
 
 ---
 
-#### Reference Files
+### Reference Files
 
 The pipeline requires:
 
-##### Genome FASTA
+#### Genome FASTA
 
-```
-Crassostrea_gigas_uk_roslin_v1.dna_sm.primary_assembly.fa
-```
+`Crassostrea_gigas_uk_roslin_v1.dna_sm.primary_assembly.fa`
 
-##### Genome annotation
+#### Genome annotation
 
-```
-Crassostrea_gigas.cgigas_uk_roslin_v1.58.chr.gff3
-```
+`Crassostrea_gigas.cgigas_uk_roslin_v1.58.chr.gff3`
 
 The GFF3 annotation must contain:
 
-```
-gene
-mRNA
-exon
-```
+`gene`, `mRNA`, and `exon`
 
 features.
 
 ---
 
-#### Running the Pipeline
+### Running the Pipeline
 
 Run:
 
@@ -188,25 +177,21 @@ Run:
 bash select_longest_mrna_for_HCR.sh hcr_panel.txt
 ```
 
-The output directory is automatically created.
+The output directory is automatically created from the input filename.
 
 Example:
 
 Input:
 
-```
-hcr_panel.txt
-```
+`hcr_panel.txt`
 
-Output:
+creates:
 
-```
-hcr_panel_HCR/
-```
+`hcr_panel_HCR/`
 
 ---
 
-#### Output Files
+### Output Files
 
 The pipeline generates:
 
@@ -220,9 +205,9 @@ hcr_panel_HCR/
 
 ---
 
-#### Understanding the Output
+### Understanding the Output
 
-##### 1. transcript_ranks.tsv
+#### 1. transcript_ranks.tsv
 
 Contains all transcript isoforms ranked by length.
 
@@ -240,7 +225,7 @@ This provides an audit trail showing why a transcript was selected.
 
 ---
 
-##### 2. selected_transcripts.tsv
+#### 2. selected_transcripts.tsv
 
 Contains the final transcript selected for each gene.
 
@@ -254,7 +239,7 @@ G3128	Mys-2	Adduct	G3128.64	8219
 
 ---
 
-##### 3. selected_one_per_gene_HCR.fa
+#### 3. selected_one_per_gene_HCR.fa
 
 This is the FASTA file used for validation and probe design.
 
@@ -276,7 +261,7 @@ The FASTA contains:
 
 ---
 
-#### Sequence Type Generated
+### Sequence Type Generated
 
 The pipeline extracts the mature transcript sequence.
 
@@ -302,23 +287,22 @@ Removed:
 The final sequence represents the processed mRNA molecule.
 
 ---
-
-### Stage 2: Validate FASTA sequences before ordering
+## Stage 2: Validate FASTA sequences before ordering
 
 Before submitting sequences for HCR probe design, each transcript should be
 validated.
 
 The goal is to confirm:
 
-- sequence corresponds to the expected gene
-- transcript belongs to the correct species
-- orientation is correct
+- the sequence corresponds to the expected gene
+- the transcript belongs to the correct species
+- the orientation is correct
 
 ---
 
-#### NCBI BLAST validation
+### NCBI BLAST validation
 
-##### Step 1
+#### Step 1: Open NCBI BLAST
 
 Open:
 
@@ -326,63 +310,57 @@ https://blast.ncbi.nlm.nih.gov/Blast.cgi
 
 ---
 
-##### Step 2
+#### Step 2: Select a FASTA sequence
 
 Copy one FASTA entry from:
 
-```
-selected_one_per_gene_HCR.fa
-```
+`selected_one_per_gene_HCR.fa`
 
 Example:
 
-```
->gene=G3128 desc=Mys-2 cell=Adduct transcript=G3128.64
+```text
+>gene=G3128 desc=Mys-2 cell=Adduct transcript=G3128.64 length=8219 CDS=576-3686 strand=-
 
 CAATTAAACATGTATTGAATAAAAGAAATTT...
 ```
 
-Copy only the sequence.
+Copy only the nucleotide sequence.
+
+Do not include the FASTA header.
 
 ---
 
-##### Step 3
+#### Step 3: Select the database
 
-Select database:
+Use:
 
-```
-RefSeq RNA
-```
+`RefSeq RNA`
 
----
-
-##### Step 4
-
-Run BLAST.
+as the BLAST database.
 
 ---
 
-##### Step 5
+#### Step 4: Run BLAST
 
-Check species match
+Submit the sequence and wait for the alignment results.
+
+---
+
+#### Step 5: Confirm species identity
 
 In the BLAST results:
 
-Open the:
+Find the matching transcript from:
 
-```
-Magallana gigas
-```
+`Magallana gigas`
 
-matching transcript result.
+The best match should correspond to the expected oyster transcript.
 
 ---
 
-##### Step 6
+#### Step 6: Confirm strand orientation
 
-Confirm strand orientation
-
-The alignment must show:
+The alignment should show:
 
 ```
 Strand: Plus / Plus
@@ -395,32 +373,30 @@ Query      Plus
 Subject    Plus
 ```
 
+A reverse orientation result should be investigated before proceeding.
+
 ---
 
-##### Step 7
+#### Step 7: Save BLAST validation record
 
-Save validation record
-
-Go to:
+Download the alignment:
 
 ```
 Downloads
-      |
-      ▼
+    |
+    ▼
 Text (aligned sequences)
 ```
 
-Save the alignment result.
+Keep the BLAST alignment record for each validated transcript.
 
 ---
 
-### Stage 3: Submit sequences for HCR probe design
+## Stage 3: Submit sequences for HCR probe design
 
-After validation, submit:
+After validation, submit the final FASTA file:
 
-```
-selected_one_per_gene_HCR.fa
-```
+`selected_one_per_gene_HCR.fa`
 
 to:
 
@@ -428,68 +404,68 @@ to:
 
 for:
 
-```
-HCR RNA-FISH v3.0 probe design
-```
+`HCR RNA-FISH v3.0 probe design`
 
-The FASTA should contain:
+The submitted FASTA file should contain:
 
 - validated transcript sequences
 - one sequence per gene
-- mature mRNA sequences
+- mature mRNA sequence
 - correct species annotation
 
 ---
 
-### Final Workflow Summary
+## Final Workflow Summary
 
 ```
-1.
-Run pipeline
+1. Extract transcripts
 
 select_longest_mrna_for_HCR.sh
 
-        ↓
-
-Generate
+        |
+        ▼
 
 selected_one_per_gene_HCR.fa
 
 
-2.
-Validate sequences
+2. Validate sequences
 
 NCBI BLAST
-        ↓
+        |
+        ▼
 RefSeq RNA
-        ↓
+        |
+        ▼
 Magallana gigas
-        ↓
-Confirm Plus/Plus strand
+        |
+        ▼
+Confirm Plus / Plus strand
 
 
-3.
-Submit FASTA
+3. Submit FASTA
 
-        ↓
+        |
+        ▼
 
 Molecular Instruments
 
-        ↓
+        |
+        ▼
 
 HCR RNA-FISH v3.0 probes
 ```
 
 ---
 
-### Notes
+## Notes
 
-- The pipeline does not select CDS-only sequences.
+- The pipeline extracts mature mRNA sequences rather than genomic regions.
+- CDS-only sequences are not used.
 - UTR regions are retained because HCR probes can target any accessible region
   of the mature transcript.
-- Selecting the longest transcript provides a reproducible strategy when multiple
-  isoforms exist.
-- BLAST validation is recommended before ordering probes to avoid transcript
+- Selecting the longest transcript provides a reproducible strategy when
+  multiple isoforms exist.
+- BLAST validation is recommended before ordering probes to minimise transcript
   annotation errors.
 
 ---
