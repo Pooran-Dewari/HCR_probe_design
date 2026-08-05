@@ -106,13 +106,9 @@ conda install -c bioconda gffread
 
 #### 1. Gene list
 
-The input file must contain a column called:
+The input file must contain a column called `Gene`
 
-`Gene`
-
-Example:
-
-`hcr_panel.txt`
+Example: `hcr_panel.txt`
 
 ```text
 Gene
@@ -161,11 +157,7 @@ The pipeline requires:
 
 `Crassostrea_gigas.cgigas_uk_roslin_v1.58.chr.gff3`
 
-The GFF3 annotation must contain:
-
-`gene`, `mRNA`, and `exon`
-
-features.
+The GFF3 annotation must contain `gene`, `mRNA`, and `exon` features.
 
 ---
 
@@ -333,11 +325,7 @@ Do not include the FASTA header.
 
 #### Step 3: Select the database
 
-Use:
-
-`RefSeq RNA`
-
-as the BLAST database.
+Use `RefSeq RNA` as the BLAST database.
 
 ---
 
@@ -351,9 +339,7 @@ Submit the sequence and wait for the alignment results.
 
 In the BLAST results:
 
-Find the matching transcript from:
-
-`Magallana gigas`
+Find the matching transcript from intended species, e.g. `Magallana gigas`
 
 The best match should correspond to the expected oyster transcript.
 
@@ -361,11 +347,7 @@ The best match should correspond to the expected oyster transcript.
 
 #### Step 6: Confirm strand orientation
 
-The alignment should show:
-
-`
-Strand: Plus / Plus
-`
+The alignment should show `Strand: Plus / Plus`
 
 Expected:
 
@@ -395,17 +377,7 @@ Keep the BLAST alignment record for each validated transcript.
 
 ## Stage 3: Submit sequences for HCR probe design
 
-After validation, submit the final FASTA file:
-
-`selected_one_per_gene_HCR.fa`
-
-to:
-
-**Molecular Instruments**
-
-for:
-
-`HCR RNA-FISH v3.0 probe design`
+After validation, submit the final FASTA file`selected_one_per_gene_HCR.fa` to **Molecular Instruments** for `HCR RNA-FISH v3.0 probe design`
 
 The submitted FASTA file should contain:
 
