@@ -29,6 +29,7 @@ The workflow has three stages:
   - [NCBI BLAST validation](#ncbi-blast-validation)
 - [Stage 3: Submit sequences for HCR probe design](#stage-3-submit-sequences-for-hcr-probe-design)
 - [Notes](#notes)
+- [Ordering](#ordering)
 
 ---
 
@@ -444,3 +445,16 @@ HCR RNA-FISH v3.0 probes
 ---
 
 **Pipeline developed for transcript selection and HCR RNA-FISH v3.0 probe preparation workflows.**
+
+---
+
+## Ordering
+Steps:  			
+- 1- 	https://store.molecularinstruments.com/new-kit/gold/rnafish   	
+- 2-	add reagents to cart and submit, they will send automatic quote via email  
+- 3-	People and money > Procurement > Shop > Browse All > Other(9) >Miscellaneous Goods  
+- 4a-	Submit requisition with the Quote and VAT exempt cert    
+- 4b-	note to buyer saying “Do not release to supplier – web order only  
+- 5-	Once approved, send PO to MI  
+
+---
